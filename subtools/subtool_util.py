@@ -166,7 +166,7 @@ class move_component_module :
         self.move_type = move_type
         self.change_ray(self.move_type)
 
-    def move_to( self ,  mouse_pos: mathutils.Vector , change_conponent = True ) -> mathutils.Vector :
+    def move_to( self ,  mouse_pos: mathutils.Vector , change_conponent = True , use_view_snap = True ) -> mathutils.Vector :
         move = mathutils.Vector( (0.0,0.0,0.0) )
 
         if self.move_ray != None :
@@ -182,7 +182,7 @@ class move_component_module :
 
             move = (vG - vS)
 
-        if QSnap.is_active() :
+        if use_view_snap and QSnap.is_active() :
             targetPos = self.start_pos + move
             targetPos = QSnap.view_adjust( targetPos )
             move = targetPos - self.start_pos

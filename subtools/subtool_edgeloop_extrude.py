@@ -91,7 +91,10 @@ class SubToolEdgeLoopExtrude(MainTool) :
 
     def OnUpdate( self , context , event ) :
         if event.type == 'MOUSEMOVE':
-            move = self.move_component_module.move_to( self.mouse_pos )
+            # The vertices are snapped individually below.  Snapping the
+            # control point to the front-most view hit would freeze the
+            # movement when the loop passes inside the target object.
+            move = self.move_component_module.move_to( self.mouse_pos , use_view_snap = False )
 
             dist = self.preferences.distance_to_highlight
 

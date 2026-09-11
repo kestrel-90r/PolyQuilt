@@ -60,15 +60,32 @@ class QSnap :
         self.objects_array = None
         self.bvh_list = None
 
+    @staticmethod
+    def _is_face_snap_enabled( tool_settings ) :
+        """Return whether Blender has face snapping enabled.
+
+        Blender 5.0 exposes face snapping for individual transformed
+        elements separately from the base snap elements.  PolyQuilt moves
+        the vertices of an edge loop individually, so both representations
+        must enable the face BVH.
+        """
+        if not tool_settings.use_snap :
+            return False
+
+        if 'FACE' in tool_settings.snap_elements :
+            return True
+
+        individual = getattr( tool_settings , 'snap_elements_individual' , () )
+        return any( mode in individual for mode in ('FACE_PROJECT', 'FACE_NEAREST') )
+
     def __update( self , context ) :
-        if context.scene.tool_settings.use_snap \
-            and 'FACE' in context.scene.tool_settings.snap_elements :
-                if self.bvh_list == None :
+        if self._is_face_snap_enabled( context.scene.tool_settings ) :
+            if self.bvh_list == None :
+                self.create_tree(context)
+            else :
+                if set( self.bvh_list.keys() ) != set(self.snap_objects(context)) :
+                    self.remove_tree()
                     self.create_tree(context)
-                else :
-                    if set( self.bvh_list.keys() ) != set(self.snap_objects(context)) :
-                        self.remove_tree()
-                        self.create_tree(context)
         else :
             if self.bvh_list != None :
                 self.remove_tree()
