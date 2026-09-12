@@ -84,10 +84,9 @@ class QMeshOperators :
         self.obj.update_tag()
         bmesh.update_edit_mesh(self.obj.data , loop_triangles = loop_triangles,destructive = destructive )
 #       self.obj.update_from_editmode()
-        if changeTopology :
-            self.__btree = None
-            self.__kdtree = None
-            self.current_matrix = None    
+        self.__btree = None
+        self.__kdtree = None
+        self.current_matrix = None
 
     @property
     def btree(self):

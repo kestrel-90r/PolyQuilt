@@ -87,6 +87,19 @@ class QMeshHighlight :
         QMeshHighlight.__grobal_tag__ = QMeshHighlight.__grobal_tag__ + 1
         self.checkDirty()
 
+    def setGeometryDirty( self ) :
+        # Coordinates changed while topology stayed the same.
+        QMeshHighlight.__grobal_tag__ = QMeshHighlight.__grobal_tag__ + 1
+        self.__vertsPos = None
+        self.__viewPosVertsNP = None
+        self.__viewPosVertsIdx = None
+        self.__viewPosEdgeNP = None
+        self.__viewPosEdgeIdx = None
+        self.__boundaryViewPosVerts = None
+        self.__boundaryViewPosEdges = None
+        self.current_matrix = None
+        self.__local_tag__ = QMeshHighlight.__grobal_tag__
+
     def checkDirty( self ) :
         if QMeshHighlight.__grobal_tag__ != self.__local_tag__ :
             def check( val ) :

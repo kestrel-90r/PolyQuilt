@@ -47,6 +47,8 @@ class QMesh(QMeshOperators) :
         super().UpdateMesh(changeTopology,loop_triangles,destructive)
         if changeTopology :
             self.highlight.setDirty()
+        else :
+            self.highlight.setGeometryDirty()
 
     def CheckValid( self , context ) :
         val = super()._CheckValid(context)
@@ -62,14 +64,15 @@ class QMesh(QMeshOperators) :
     def PickElement( self , coord , radius : float , ignore = [] , edgering = False , backface_culling = None , elements = ['FACE','EDGE','VERT'] , check_func = None ) -> ElementItem :
         if 'SELECT' in elements :
             select = set()
-            if 'VERT' in self.bm.select_mode :
+            select_mode = bpy.context.tool_settings.mesh_select_mode[0:3]
+            if select_mode[0] :
                 select.add('VERT')
                 select.add('EDGE')
                 select.add('FACE')
-            if 'EDGE' in self.bm.select_mode :
+            if select_mode[1] :
                 select.add('EDGE')
                 select.add('FACE')
-            if 'FACE' in self.bm.select_mode :
+            if select_mode[2] :
                 select.add('FACE')
             elements = set(elements) & select
 
@@ -84,59 +87,47 @@ class QMesh(QMeshOperators) :
 
         # Hitする頂点を探す
         hitVert = ElementItem.Empty()
+
+        # A snap miss must not make an otherwise visible mesh element unpickable.
+        def is_visible( item ) :
+            hitTemp = self.highlight.PickFace(
+                item.coord , ignoreFaces , backface_culling = False )
+            if hitTemp.isEmpty :
+                return True
+            if item.isVert and item.element in hitTemp.element.verts :
+                return True
+            if item.isEdge and item.element in hitTemp.element.edges :
+                return True
+
+            v1 = matrix @ item.hitPosition.to_4d()
+            v2 = matrix @ hitTemp.hitPosition.to_4d()
+            return v1.z <= v2.z
+
+        def pick_candidate( candidates , surface_only ) :
+            for item in candidates :
+                if check_func and not check_func( item ) :
+                    continue
+                if surface_only and not QSnap.is_target( item.hitPosition ) :
+                    continue
+                if is_visible( item ) :
+                    return item
+            return ElementItem.Empty()
+
         if 'VERT' in elements :
             ignoreVerts =  [ i for i in ignore if isinstance( i , bmesh.types.BMVert ) ]
             candidateVerts = self.highlight.CollectVerts( coord , radius , ignoreVerts , edgering , backface_culling = backface_culling  )
-            for vert in candidateVerts :
-                if check_func and not check_func( vert ) :
-                    continue
-
-                # 各点からRayを飛ばす
-                if QSnap.is_target( vert.hitPosition ) :
-                    hitTemp = self.highlight.PickFace( vert.coord , ignoreFaces , backface_culling = False  )
-                    if hitTemp.isEmpty :
-                        # 何の面にもヒットしないなら採択
-                        hitVert = vert
-                        break
-                    else :
-                        if vert.element in hitTemp.element.verts :
-                            # ヒットした面に含まれているなら採択
-                            hitVert = vert
-                            break
-                        else :
-                            # ヒットしたポイントより後ろなら採択
-                            v1 = matrix @ vert.hitPosition
-                            v2 = matrix @ hitTemp.hitPosition
-                            if v1.z <= v2.z :
-                                hitVert = vert
-                                break
+            hitVert = pick_candidate( candidateVerts , True )
+            if hitVert.isEmpty :
+                hitVert = pick_candidate( candidateVerts , False )
 
         # Todo:ヒットするエッジを探す
         hitEdge = ElementItem.Empty()
         if 'EDGE' in elements :
             ignoreEdges =  [ i for i in ignore if isinstance( i , bmesh.types.BMEdge ) ]
             candidateEdges = self.highlight.CollectEdge( coord , radius , ignoreEdges , backface_culling = backface_culling , edgering= edgering )
-
-            for edge in candidateEdges :
-                if check_func and not check_func( edge ) :
-                    continue
-                if QSnap.is_target( edge.hitPosition ) :                
-                    hitTemp = self.highlight.PickFace( edge.coord , ignoreFaces , backface_culling = False )
-                    if hitTemp.isEmpty :
-                        hitEdge = edge
-                        break
-                    else:
-                        if edge.element in hitTemp.element.edges :
-                            # ヒットした面に含まれているなら採択
-                            hitEdge = edge
-                            break
-                        else :
-                            # ヒットしたポイントより後ろなら採択
-                            v1 = matrix @ edge.hitPosition
-                            v2 = matrix @ hitTemp.hitPosition
-                            if v1.z <= v2.z :
-                                hitEdge = edge
-                                break
+            hitEdge = pick_candidate( candidateEdges , True )
+            if hitEdge.isEmpty :
+                hitEdge = pick_candidate( candidateEdges , False )
 
 
         if hitVert.isEmpty and hitEdge.isEmpty :
@@ -146,7 +137,7 @@ class QMesh(QMeshOperators) :
                 # 候補頂点/エッジがないなら面を返す
                 if hitFace.isNotEmpty :
                     if check_func == None or check_func( hitFace ) :
-                        if QSnap.is_target( hitFace.hitPosition ) :                
+                        if QSnap.is_target( hitFace.hitPosition ) :
                             hitElement = hitFace
         elif hitVert.isNotEmpty and hitEdge.isNotEmpty :
             if hitVert.element in hitEdge.element.verts :
