@@ -1,6 +1,16 @@
 import numpy as np
 
 
+def Cross2D( a , b ) :
+    """Return the scalar cross product of 2D vectors.
+
+    NumPy 2.x no longer accepts 2D vectors in ``np.cross``.  Keeping the
+    operation explicit preserves the old 2D result for both single vectors
+    and arrays of vectors.
+    """
+    return a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]
+
+
 def IntersectPointInSphere( point , points , radius ) :
     rt = np.sum( (points - point) ** 2 , axis = -1 )
 
@@ -25,7 +35,7 @@ def DistancePointToLine2D( co , lines , radius , isRetPoint = True ) :
 
     ba = ba[idx]
     pa = pa[idx]
-    dist = np.abs( np.cross( ba , pa ) / np.linalg.norm( ba , axis=-1 ) )
+    dist = np.abs( Cross2D( ba , pa ) / np.linalg.norm( ba , axis=-1 ) )
 
     return idx[0][ dist < radius ]
 
@@ -40,11 +50,11 @@ def IntersectLine2DLines2D( line , lines , isRetPoint = True ) :
     t43 = p4 - p3
     t31 = p3 - p1
 
-    d = np.cross( t21 , t43 )
+    d = Cross2D( t21 , t43 )
 
     with np.errstate(divide='ignore'):
-        u = np.cross( t31 , t43 ) / d
-        v = np.cross( t31 , t21 ) / d
+        u = Cross2D( t31 , t43 ) / d
+        v = Cross2D( t31 , t21 ) / d
 
     hit = (d != 0) & (u > 0) & (u < 1) & (v > 0) & (v < 1)
     idx = np.where( hit == True )[0]

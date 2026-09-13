@@ -264,6 +264,11 @@ class PQ_GizmoGroup_Brush(PQ_GizmoGroup_Base):
     bl_idname = my_tool.bl_widget
     bl_label = "PolyQuilt Brush Gizmo"
 
+class PQ_GizmoGroup_BrushSnap(PQ_GizmoGroup_Base):
+    my_tool = ToolPolyQuiltBrushSnap
+    bl_idname = my_tool.bl_widget
+    bl_label = "PolyQuilt Brush Snap Gizmo"
+
 class PQ_GizmoGroup_Seam(PQ_GizmoGroup_Base):
     my_tool = ToolPolyQuiltSeam
     bl_idname = my_tool.bl_widget
@@ -274,7 +279,14 @@ class PQ_GizmoGroup_QuadPatch(PQ_GizmoGroup_Base):
     bl_idname = my_tool.bl_widget
     bl_label = "PolyQuilt QuadOatch Gizmo"
 
-all_gizmos = ( PQ_Gizmo_Preselect , PQ_GizmoGroup_Preselect , PQ_GizmoGroup_Lowpoly , PQ_GizmoGroup_Knife , PQ_GizmoGroup_Delete, PQ_GizmoGroup_Extrude, PQ_GizmoGroup_EdgeLoop, PQ_GizmoGroup_LoopCut, PQ_GizmoGroup_Brush, PQ_GizmoGroup_Seam, PQ_GizmoGroup_QuadPatch )
+class PQ_GizmoGroup_QuadStrip(PQ_GizmoGroup_Base):
+    my_tool = ToolPolyQuiltQuadStrip
+    bl_idname = my_tool.bl_widget
+    bl_label = "PolyQuilt QuadStrip Gizmo"
 
+class PQ_GizmoGroup_HairTip(PQ_GizmoGroup_Base):
+    my_tool = ToolPolyQuiltHairTip
+    bl_idname = my_tool.bl_widget
+    bl_label = "PolyQuilt Hair Tip Gizmo"
 
-
+all_gizmos = ( PQ_Gizmo_Preselect , PQ_GizmoGroup_Preselect , PQ_GizmoGroup_Lowpoly , PQ_GizmoGroup_Knife , PQ_GizmoGroup_Delete, PQ_GizmoGroup_Extrude, PQ_GizmoGroup_EdgeLoop, PQ_GizmoGroup_LoopCut, PQ_GizmoGroup_Brush, PQ_GizmoGroup_BrushSnap, PQ_GizmoGroup_Seam, PQ_GizmoGroup_QuadPatch, PQ_GizmoGroup_QuadStrip, PQ_GizmoGroup_HairTip )

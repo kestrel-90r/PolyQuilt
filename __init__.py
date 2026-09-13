@@ -15,7 +15,7 @@ bl_info = {
     "name" : "PolyQuilt",
     "author" : "Sakana3, port to 4.0 by Dangry",
     "version": (1, 5, 2),
-    "blender" : (5, 1, 0),
+    "blender" : (5, 2, 0),
     "location": "View3D > Mesh > PolyQuilt",
     "description": "Lowpoly Tool",
     "warning" : "",
@@ -29,7 +29,7 @@ from .pq_operator import *
 from .pq_operator_add_empty_object import *
 from .pq_icon import *
 from .pq_tool import PolyQuiltTools
-from .pq_tool_ui import VIEW3D_PT_tools_polyquilt_options
+from .pq_tool_ui import VIEW3D_PT_tools_polyquilt_options, VIEW3D_PT_tools_polyquilt_gpencil
 from .pq_keymap_editor import PQ_OT_DirtyKeymap
 from .gizmo_preselect import * 
 from .pq_preferences import *

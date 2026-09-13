@@ -229,6 +229,14 @@ class PolyQuiltPreferences(AddonPreferences):
         min=5.0,
         max=200.0)    
 
+    hair_tip_quad_spacing : bpy.props.FloatProperty(
+        name="Hair Tip Quad Spacing",
+        description="Distance between Hair Tip quad rows in pixels",
+        default=20.0,
+        min=4.0,
+        max=200.0,
+        precision=0)
+
     brush_strength : bpy.props.FloatProperty(
         name="Brush Strength",
         description="Brush Strength",
@@ -453,4 +461,3 @@ class PQ_OT_SetupUnityLikeKeymap(bpy.types.Operator) :
                 break
         else :
             keymap.keymap_items.new(idname = idname, type = type , value = value , any=any, shift=shift, ctrl=ctrl, alt=alt, oskey=oskey, key_modifier=key_modifier, repeat=repeat, head=head)
-

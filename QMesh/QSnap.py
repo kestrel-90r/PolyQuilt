@@ -72,7 +72,12 @@ class QSnap :
         if not tool_settings.use_snap :
             return False
 
-        if 'FACE' in tool_settings.snap_elements :
+        snap_elements = getattr( tool_settings , 'snap_elements' , () )
+        snap_base = getattr( tool_settings , 'snap_elements_base' , () )
+        if any( mode in snap_elements for mode in ('FACE', 'FACE_PROJECT', 'FACE_NEAREST') ) :
+            return True
+
+        if 'FACE' in snap_base :
             return True
 
         individual = getattr( tool_settings , 'snap_elements_individual' , () )
@@ -111,7 +116,6 @@ class QSnap :
                 del bvh
         self.bvh_list = None
 
-
     @classmethod
     def view_adjust( cls , world_pos : mathutils.Vector ) -> mathutils.Vector :
         if cls.instance != None :
@@ -133,6 +137,57 @@ class QSnap :
             if location != None :
                 return location
         return None
+
+    @classmethod
+    def screen_adjust_hit( cls , coord : mathutils.Vector ) :
+        """Return a face-snap hit with its world-space normal.
+
+        ``screen_adjust`` exposes only the position for the existing move
+        tools.  Standalone mesh generators can also use the face normal to
+        orient their own disconnected geometry.
+        """
+        if cls.instance != None :
+            ray = pqutil.Ray.from_screen( bpy.context , coord )
+            if ray == None :
+                return None
+            location , normal , index = cls.instance.__raycast( ray )
+            if location != None and normal != None :
+                normal = normal.copy()
+                if normal.length_squared > 0.0 :
+                    normal.normalize()
+                return location.copy() , normal , index
+        return None
+
+    @classmethod
+    def snap_point( cls , world_pos : mathutils.Vector , world_normal = None ) :
+        """Snap a world-space point to a visible target face.
+
+        The returned value is ``(location, normal, face_index)`` or
+        ``None`` when the point does not project onto a target face.  A
+        view ray is preferred because it matches Blender's face-project
+        snapping behavior.  The supplied normal is used as a fallback for
+        a point whose screen ray misses the target.
+        """
+        if cls.instance is None or not cls.instance.bvh_list :
+            return None
+
+        ray = pqutil.Ray.from_world_to_screen( bpy.context , world_pos )
+        hit = None
+        if ray is not None :
+            hit = cls.instance.__raycast( ray )
+
+        if hit is None or hit[0] is None :
+            if world_normal is None :
+                return None
+            ray = pqutil.Ray( world_pos , world_normal )
+            hit = cls.instance.__raycast_double( ray )
+
+        if hit[0] is None :
+            return None
+        location , normal , index = hit
+        if normal is None :
+            return None
+        return location.copy() , normal.copy() , index
 
 
     @classmethod
@@ -201,6 +256,8 @@ class QSnap :
     def is_target( cls , world_pos : mathutils.Vector) -> bool :
         dist = bpy.context.scene.tool_settings.double_threshold
         if cls.instance != None :
+            if not cls.instance.bvh_list :
+                return True
             ray = pqutil.Ray.from_world_to_screen( bpy.context , world_pos )
             if ray == None :
                 return False
@@ -253,6 +310,7 @@ class QSnap :
 #            if ray.vector.dot( normal_r ) < -0.5 :
 #                return location_r , normal_r , face_r
 
+        location_r , normal_r , face_r = self.__raycast( ray.invert )
         location_i , normal_i , face_i = self.__raycast( ray )
 
         if face_i == None or face_r == None :

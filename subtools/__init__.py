@@ -26,6 +26,9 @@ from .subtool_edgeloop_extrude import SubToolEdgeLoopExtrude
 from .subtool_seam import SubToolSeam
 from .subtool_seam_loop import SubToolSeamLoop
 from .maintool_quad_patch import MainToolQuadPatch
+from .subtool_quad_strip import MainToolQuadStrip
+from .maintool_hair_tip import MainToolHairTip
+from .maintool_brush_snap import MainToolBrushSnap
 
 maintools = {
     'NONE'              : None ,
@@ -43,6 +46,9 @@ maintools = {
     'MARK_SEAM'         : SubToolSeam ,
     'MARK_SEAM_LOOP'    : SubToolSeamLoop ,
     'QUADPATCH'         : MainToolQuadPatch ,
+    'QUADSTRIP'         : MainToolQuadStrip ,
+    'HAIR_TIP'          : MainToolHairTip ,
+    'BRUSH_SNAP'        : MainToolBrushSnap ,
 }
 
 def enum_tool_callback(scene, context ):

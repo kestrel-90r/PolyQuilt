@@ -23,31 +23,20 @@ from .dpi import *
 
 
 dot_line_vertex_shader = '''
-uniform mat4 ProjectionMatrix;
-
-in vec2 pos;
-in float dist;
-out float distance;
-
 void main()
 {
-    gl_Position = ProjectionMatrix * vec4(pos,0, 1.0f);
+    gl_Position = ProjectionMatrix * vec4(pos, 0.0, 1.0);
     distance = dist;
 }
 '''
 
 dot_line_fragment_shader = '''
-uniform vec4 color;
-uniform vec2 line_t;
-
-in float distance;
-
 void main()
 {
     float t = line_t.x + line_t.y;
-    float a = mod( distance / t , 1 );
+    float a = mod(distance / t, 1.0);
     a = step( a , line_t.x / t );
-
+    FragColor = vec4(color.rgb, color.a * a);
 }
 '''
 
@@ -59,10 +48,61 @@ def batch_draw( shader , primitiveType , content  , indices = None ) :
     batch.draw(shader)
     return batch
 
-try :
-    shaderEx = gpu.types.GPUShader(dot_line_vertex_shader, dot_line_fragment_shader)
-except Exception as e:
-    shaderEx = gpu.shader.from_builtin('UNIFORM_COLOR')
+def _create_dot_line_shader():
+    """Create the dotted-line shader using the Blender 5.x GPU API."""
+    try:
+        vert_out = gpu.types.GPUStageInterfaceInfo("polyquilt_dot_line_interface")
+        vert_out.smooth('FLOAT', "distance")
+
+        shader_info = gpu.types.GPUShaderCreateInfo()
+        shader_info.push_constant('MAT4', "ProjectionMatrix")
+        shader_info.push_constant('VEC4', "color")
+        shader_info.push_constant('VEC2', "line_t")
+        shader_info.vertex_in(0, 'VEC2', "pos")
+        shader_info.vertex_in(1, 'FLOAT', "dist")
+        shader_info.vertex_out(vert_out)
+        shader_info.fragment_out(0, 'VEC4', "FragColor")
+        shader_info.vertex_source(dot_line_vertex_shader)
+        shader_info.fragment_source(dot_line_fragment_shader)
+        shader = gpu.shader.create_from_info(shader_info)
+        del vert_out
+        del shader_info
+        return shader
+    except Exception:
+        # Keep compatibility with Blender versions that still expose the
+        # legacy constructor. Blender 5.2 uses the branch above.
+        try:
+            return gpu.types.GPUShader(
+                """
+                uniform mat4 ProjectionMatrix;
+                in vec2 pos;
+                in float dist;
+                out float distance;
+                void main()
+                {
+                    gl_Position = ProjectionMatrix * vec4(pos, 0.0, 1.0);
+                    distance = dist;
+                }
+                """,
+                """
+                uniform vec4 color;
+                uniform vec2 line_t;
+                in float distance;
+                out vec4 FragColor;
+                void main()
+                {
+                    float t = line_t.x + line_t.y;
+                    float a = mod(distance / t, 1.0);
+                    a = step(a, line_t.x / t);
+                    FragColor = vec4(color.rgb, color.a * a);
+                }
+                """,
+            )
+        except Exception:
+            return None
+
+
+shaderEx = _create_dot_line_shader()
 
 shader2D = gpu.shader.from_builtin('UNIFORM_COLOR')
 shader3D = gpu.shader.from_builtin('UNIFORM_COLOR')
@@ -117,10 +157,18 @@ def draw_lines2D(verts, color=(1, 1, 1, 1), width: float = 1.0):
     batch_for_shader(shader, 'LINE_STRIP', {"pos": verts}).draw(shader)
 
 def draw_dot_lines2D( verts , color = (1,1,1,1) , width : float = 2.0 , pattern = (4,2) ):
+    if shaderEx is None:
+        draw_lines2D(verts, color, width)
+        return
+
     shaderEx.bind()
+    shaderEx.uniform_float(
+        "ProjectionMatrix",
+        gpu.matrix.get_projection_matrix() @ gpu.matrix.get_model_view_matrix(),
+    )
     shaderEx.uniform_float("color", color )
-#   shaderEx.uniform_float("ModelViewProjectionMatrix", bpy.context.region_data.perspective_matrix)
     shaderEx.uniform_float("line_t", ( display.dot( pattern[0] ) , display.dot(  pattern[1] )) )
+    gpu.state.blend_set("ALPHA")
 
     dist = [0,]
     length = 0
@@ -158,10 +206,38 @@ def draw_Poly3D(context, verts, color=(1, 1, 1, 1), hide_alpha=0.5):
     shader3D.uniform_float("color", color)
     batch_for_shader(shader3D, 'TRIS', {"pos": verts}, indices=polys).draw(shader3D)
 
-def draw_pivots3D( poss , radius , color = (1,1,1,1) ):
+def draw_pivots3D( poss , radius , color = (1,1,1,1), circle = False ):
+    if circle :
+        # Vertex preselection is easier to see as a screen-facing ring than
+        # as a single GPU point, especially on high-DPI displays.
+        circle_radius = max(4.0, float(radius))
+        with push_pop_projection2D() :
+            for pos in poss :
+                coord = location_3d_to_region_2d(pos)
+                if coord is not None :
+                    draw_circle2D(
+                        coord, circle_radius, color=color, fill=False,
+                        subdivide=32, dpi=False, width=1.5)
+        return
+
     shader3D.bind()
     shader3D.uniform_float("color", color)
-    batch_draw(shader3D, 'POINTS', {"pos": poss} )
+    # Blender's default point size is effectively one pixel.  The radius
+    # argument used by PolyQuilt's vertex preselection was previously not
+    # applied here, making the hover marker disappear after the 5.x port.
+    point_size = max(1.0, float(radius))
+    try:
+        gpu.state.program_point_size_set(False)
+        gpu.state.point_size_set(point_size)
+    except (AttributeError, RuntimeError):
+        pass
+    try:
+        batch_draw(shader3D, 'POINTS', {"pos": poss} )
+    finally:
+        try:
+            gpu.state.point_size_set(1.0)
+        except (AttributeError, RuntimeError):
+            pass
 
 
 
@@ -212,7 +288,7 @@ def drawElementsHilight3DFunc( obj , bm : bmesh.types.BMesh , elements, radius,w
 def drawElementHilight3D( obj , bm : bmesh.types.BMesh , element, radius ,width , alpha, color = (1,1,1,1) ) :
     if isinstance( element , bmesh.types.BMVert ) :
         v = obj.matrix_world @ element.co
-        draw_pivots3D( (v,) , radius , color )
+        draw_pivots3D( (v,) , radius , color , circle = True )
     elif isinstance( element , bmesh.types.BMFace  ) :
         draw_Face3D(obj,bm,element, (color[0],color[1],color[2],color[3] * alpha) )
     elif isinstance( element , bmesh.types.BMEdge ) :
@@ -225,7 +301,7 @@ def drawElementHilight3DFunc( obj  , bm : bmesh.types.BMesh , element, radius ,w
         co = copy.copy(element.co)
         v = matrix_world @ co
         def draw() :
-            draw_pivots3D( (v,) , radius , color )
+            draw_pivots3D( (v,) , radius , color , circle = True )
         return draw
 
     elif isinstance(element, bmesh.types.BMFace):
@@ -291,5 +367,3 @@ class push_pop_projection2D:
         if (exc_type!=None):
             #return True  #例外を抑制するには
             return False #例外を伝播する
-
-

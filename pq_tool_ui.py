@@ -76,6 +76,13 @@ def draw_settings_ui( opetator , context, layout, tool  , ui ):
         col.prop( preferences, "brush_size" , text = "Brush Size" , expand = True, slider = True , icon_only = False )
         col.prop( preferences, "brush_strength" , text = "Brush Strength" , expand = True, slider = True , icon_only = False )
 
+    if "HAIR_TIP" in ui :
+        layout.separator()
+        col = layout.column(align=True)
+        col.prop(
+            preferences, "hair_tip_quad_spacing",
+            text = "Quad Spacing (px)", slider = True)
+
     if "RETOPO" in ui or "BRUSH" in ui :
         row = layout.row(align=True)
         row.prop( preferences, "line_segment_length" , text = "Line Length" , expand = True, slider = True  )
@@ -107,6 +114,13 @@ def draw_settings_toolheader( operator , context, layout, tool , ui = ['GEOM','B
         row = layout.row( align=True)
         row.label( text = "Brush" )
         row.prop( props , "brush_type" , text = "Brush", toggle = True , expand = True, icon_only = True )
+
+    if "HAIR_TIP" in ui :
+        row = layout.row( align=True)
+        row.label( text = "Quad Spacing" )
+        row.prop(
+            preferences, "hair_tip_quad_spacing",
+            text = "px", slider = True)
 
     if "RETOPO" in ui or "BRUSH" in ui :
         row = layout.row( align=True)
@@ -190,7 +204,7 @@ class VIEW3D_PT_tools_polyquilt_gpencil( Panel):
     def draw(self, context):
 
         hasGPen = False
-        gp = context.scene.grease_pencil
+        gp = context.scene.annotation
         layout = self.layout
         if gp:
             for layer in gp.layers :
@@ -212,4 +226,3 @@ class VIEW3D_PT_tools_polyquilt_gpencil( Panel):
                     box.prop(layer, "color" , text = "" )
                     box.prop(layer, "annotation_opacity" , text = "Opacity" , expand = True , translate = True )
                     box.prop(layer, "thickness" , text = "Thickness" , expand = True, translate = True )
-

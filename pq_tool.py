@@ -160,6 +160,36 @@ class ToolPolyQuiltQuadPatch(ToolPolyQuiltBase):
     bl_keymap = ToolPolyQuiltBase.tool_keymaps( [pq_main_tool] , operator = pq_operator , shift = ['BRUSH'] )
 
 
+class ToolPolyQuiltQuadStrip(ToolPolyQuiltBase):
+    pq_main_tool = 'QUADSTRIP'
+    pq_description = 'Quad Strip Tool'
+    # Include MASTER so the existing settings panel exposes Snap.  The
+    # operator keymap still selects the QUADSTRIP main tool.
+    pq_tools = [ 'MASTER' ]
+
+    bl_idname = "mesh_tool.poly_quilt_quad_strip"
+    bl_label = "PolyQuilt:QuadStrip"
+    bl_description = ( "Create snapped quads from an existing quad edge" )
+    bl_icon = os.path.join(os.path.join(os.path.dirname(__file__), "icons") , "addon.poly_quilt_quad_patch_icon")
+    bl_widget = "MESH_GGT_PQ_QuadStrip"
+    bl_keymap = ToolPolyQuiltBase.tool_keymaps( [pq_main_tool] , shift = ['BRUSH'] )
+
+
+class ToolPolyQuiltHairTip(ToolPolyQuiltBase):
+    pq_main_tool = 'HAIR_TIP'
+    pq_description = 'Hair Tip Retopo Tool'
+    # Keep the common PolyQuilt options, including Face Snap, visible.
+    pq_tools = [ 'MASTER', 'HAIR_TIP' ]
+
+    bl_idname = "mesh_tool.poly_quilt_hair_tip"
+    bl_label = "PolyQuilt: Hair Tip"
+    bl_description = ( "Create a thin face-snapped quad strip by drag" )
+    # Reuse the polygon icon until a dedicated Hair Tip icon is needed.
+    bl_icon = os.path.join(os.path.join(os.path.dirname(__file__), "icons") , "addon.poly_quilt_poly_icon")
+    bl_widget = "MESH_GGT_PQ_HairTip"
+    bl_keymap = ToolPolyQuiltBase.tool_keymaps( [pq_main_tool] , shift = ['BRUSH'] )
+
+
 class ToolPolyQuiltLoopCut(ToolPolyQuiltBase):
     pq_main_tool = 'LOOPCUT'
     pq_description = 'LoopCut Tool'
@@ -184,6 +214,22 @@ class ToolPolyQuiltBrush(ToolPolyQuiltBase):
     bl_widget = "MESH_GGT_PQ_Brush"
     bl_keymap = ToolPolyQuiltBase.tool_keymaps( [pq_main_tool], shift = ['BRUSH'] ) 
 
+
+class ToolPolyQuiltBrushSnap(ToolPolyQuiltBase):
+    pq_main_tool = 'BRUSH_SNAP'
+    pq_description = 'Face Snap Brush Tool'
+    # Use the same settings panel as PolyQuilt:Brush, including brush size
+    # and strength.
+    pq_tools = [ 'MASTER' ]
+
+    bl_idname = "mesh_tool.poly_quilt_brush_snap"
+    bl_label = "PolyQuilt:Brush Snap"
+    bl_description = ( "Face-snap vertices inside the brush" )
+    bl_icon = os.path.join(os.path.join(os.path.dirname(__file__), "icons") , "addon.poly_quilt_brush_icon")
+    bl_widget = "MESH_GGT_PQ_BrushSnap"
+    bl_keymap = ToolPolyQuiltBase.tool_keymaps( [pq_main_tool], shift = ['BRUSH'] ) 
+
+
 class ToolPolyQuiltSeam(ToolPolyQuiltBase):
     pq_main_tool = 'MARK_SEAM'
     pq_description = 'Seam Tool'
@@ -198,7 +244,9 @@ class ToolPolyQuiltSeam(ToolPolyQuiltBase):
 
 PolyQuiltTools = (
     { 'tool' : ToolPolyQuiltQuadPatch , 'after' : {"builtin.poly_build"} , 'group' : True },
+    { 'tool' : ToolPolyQuiltQuadStrip , 'after' : {"mesh_tool.poly_quilt_quad_patch"} , 'group' : True },
     { 'tool' : ToolPolyQuilt       , 'after' : {"builtin.poly_build"} , 'group' : True },
+    { 'tool' : ToolPolyQuiltHairTip , 'after' : {"mesh_tool.poly_quilt"} , 'group' : False },
     { 'tool' : ToolPolyQuiltPoly  , 'after' : {"mesh_tool.poly_quilt"} , 'group' : False },
     { 'tool' : ToolPolyQuiltExtrude  , 'after' : {"mesh_tool.poly_quilt"} , 'group' : False },
     { 'tool' : ToolPolyQuiltEdgeLoop  , 'after' : {"mesh_tool.poly_quilt"} , 'group' : False },
@@ -206,5 +254,6 @@ PolyQuiltTools = (
     { 'tool' : ToolPolyQuiltKnife  , 'after' : {"mesh_tool.poly_quilt"} , 'group' : False },
     { 'tool' : ToolPolyQuiltDelete  , 'after' : {"mesh_tool.poly_quilt"} , 'group' : False },
     { 'tool' : ToolPolyQuiltBrush  , 'after' : {"mesh_tool.poly_quilt"} , 'group' : False },
+    { 'tool' : ToolPolyQuiltBrushSnap  , 'after' : {"mesh_tool.poly_quilt_brush"} , 'group' : False },
     { 'tool' : ToolPolyQuiltSeam , 'after' : {"mesh_tool.poly_quilt"} , 'group' : False },
 )

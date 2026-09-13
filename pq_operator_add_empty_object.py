@@ -57,7 +57,7 @@ class MESH_OT_PolyQuilt_Gpenci_Tools(Operator) :
 
     def invoke(self, context , event):
         if self.type == 'REMOVE' :
-            gp = context.scene.grease_pencil            
+            gp = context.scene.annotation            
             if gp:
                 layer = self.get_gp_layer( context , "PolyQuilt_GPencil" )
                 gp.layers.remove( layer )
@@ -95,7 +95,6 @@ class MESH_OT_PolyQuilt_Gpenci_Tools(Operator) :
             stroke.points.add( len(line) )
             for sp , lp in zip( stroke.points , line ) :
                 sp.co = lp
-            stroke.points.update()
 
     def add_boundary(self , context , frame ) :
         lines = self.get_boundary( context )
@@ -111,22 +110,20 @@ class MESH_OT_PolyQuilt_Gpenci_Tools(Operator) :
             stroke.points.add( len(line) )
             for sp , lp in zip( stroke.points , line ) :
                 sp.co = lp
-            stroke.points.update()
 
     @staticmethod
     def get_gp_layer( context , layer_name = "PolyQuilt_GPencil" ) :
-        gp = context.scene.grease_pencil
+        gp = context.scene.annotation
         if not gp:
-            gp = bpy.data.grease_pencils.new("GP")
-            context.scene.grease_pencil = gp
+            gp = bpy.data.annotations.new("GP")
+            context.scene.annotation = gp
 
         layer = None
         if not layer_name :
-            if gp.layers.active :
-                layer = gp.layers.active
-            elif len(gp.layers) > 0 :
-                layer = gp.layers[0]
-                gp.layers.active = layer
+            if len(gp.layers) > 0 :
+                # Blender 5.0+ exposes the active annotation layer by index.
+                active_index = min(max(gp.layers.active_index, 0), len(gp.layers) - 1)
+                layer = gp.layers[active_index]
         else :
             if any( layer_name in l.info for l in  gp.layers ) :
                 for l in gp.layers :
@@ -134,8 +131,7 @@ class MESH_OT_PolyQuilt_Gpenci_Tools(Operator) :
                         layer = l
                         break
             else :
-                layer = gp.layers.new(layer_name , set_active = gp.layers.active == None )
-                gp.layers.active = layer
+                layer = gp.layers.new(layer_name , set_active = True )
 
         return layer
 
@@ -243,7 +239,7 @@ class MESH_OT_GPencil_2_Edge(Operator) :
         return self.execute(context )
 
     def execute(self, context ):
-        gp = context.scene.grease_pencil
+        gp = context.scene.annotation
         if not gp:
             return {'CANCELLED'}
         obj = context.active_object
